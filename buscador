@@ -1,0 +1,208 @@
+<?
+include("php/conexion.php");
+session_start();
+$usuario_ID=$_SESSION['usuarios_ID']; 
+
+$sql="SELECT * FROM usuarios WHERE ID='$usuario_ID'";
+           $result=mysqli_query($conn ,$sql);
+			while($row=mysqli_fetch_assoc($result)){
+			 $nombre =$row['nombre'];
+}
+
+
+//$nombres=$_SESSION['nombre'];
+
+echo "Bienvenido profesor ".$nombre;
+echo " BuscaLab de Tecmilenio le ayuda a reservar laboratorios para prácticas, conferencias y eventos.";
+
+$campus=$_GET['identificador'];
+
+?>
+<html lang="en">
+    
+<head><meta http-equiv="Content-Type" content="text/html; charset=euc-jp">
+
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="BuscaLab">
+	<title>BuscaLab TecMilenio</title>
+	<link href="css/font-awesome.min.css" rel="stylesheet" />
+	<link href="css/bootstrap.min.css" rel="stylesheet" />
+	<link href="css/style.css" rel="stylesheet" />
+	<link href="https://fonts.googleapis.com/css?family=Open+Sans:600italic,400,800,700,300" rel="stylesheet" type="text/css" />
+	<link href="https://fonts.googleapis.com/css?family=BenchNine:300,400,700" rel="stylesheet" type="text/css" /><script src="js/modernizr.js"></script>
+	
+	<!--[if lt IE 9]>
+      <script src="js/html5shiv.js"></script>
+      <script src="js/respond.min.js"></script>
+    <![endif]-->
+    
+    
+    
+      <!--****************************Dise?o del buscador *********************-->
+  <!-- Latest compiled and minified CSS -->
+  <link  integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+  <!-- Optional theme -->
+  <link integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+    <!--**************************** FIN del Dise?o del buscador *********************-->
+</head>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js">
+</script>
+<script type="text/javascript">
+/*  $(document).ready(function(){
+  $('#search').focus()
+
+  $('#search').on('keyup', function(){
+    var search = $('#search').val()
+    $.ajax({
+      type: 'POST',
+      url: 'php/search.php',
+      data: {'search': search},
+      beforeSend: function(){
+        $('#result').html('<img src="img/pacman.gif">')
+      }
+    })
+    .done(function(resultado){
+      $('#result').html(resultado)
+    })
+    .fail(function(){
+      alert('Hubo un error :(')
+    })
+  })
+})*/
+
+function buscarSoftware(search,campusID){
+    var buscar=search;
+    var campus=campusID;
+    $.post('ajax/search.php', {buscar: buscar, campus: campus}, function(dataSoftware){
+                    $("#result").html(dataSoftware);
+                });
+}
+</script>
+
+  <body>
+  <!-- ====================================================
+	Dimension del logo  -->
+  <form action="logout.php">
+      <input type="submit" name="logout" value="cerrar sesion">
+      
+  </form>
+  <header class="top-header"></header>
+  <!-- end of slider section -->
+  <!-- que se trata el proyecto -->
+  <br>
+  <br>
+  <br>
+Seleccione de la siguiente lista el laboratorio que desea reservar o bien utilice el <a href="maravillosobuscador.php?identificador=<?=$campus; ?>">buscador de software</a> para encontrar el laboratorio que cuente con el software necesario para la práctica que desea realizar.
+</p>
+
+<table width="200" border="1">
+  <tr>
+    <td>Nombre</td>
+    <td>Foto</td>
+  </tr>
+  <?php
+//require_once 'php/conexion.php';
+
+
+
+
+//$mysqli = getConnexion();
+$query3= "SELECT *  FROM laboratory WHERE campus_id = $campus";
+  $res3 = mysqli_query($conn,$query3);
+  while ($row3 = mysqli_fetch_assoc($res3)) {
+           $LAB_NAME=$row3['name']; 
+		   $foto=$row3['photo'];
+	$lb_id=$row3['id'];
+		 
+?>
+  <tr>
+    <td><a href="lab.php?identificador=<?php echo $lb_id;?>"><?php echo $LAB_NAME; ?></a></td>
+    <td><img src="pictures/<?php echo $foto; ?>" width="250" ></td>
+  </tr>
+ 
+  <?php
+  }
+  
+  $sql = "UPDATE usuarios SET campus_ID = $campus WHERE ID = $usuario_ID";
+if ($conn->query($sql) === TRUE) {
+    echo "Nota: Su campus fue asociado a su perfil para facilitar la consulta de laboratorios cada vez que ingrese al sistema, sin embargo puede cambiar la <a href=campus.php>seleccion de campus</a> si en algun momento lo requiere";
+}
+//else {
+//    echo "Error updating record: " . $conn->error;
+//}
+
+$conn->close();
+  ?>
+</table>
+<p>  <br> 
+  <br>
+</p>
+<section class="about text-center" id="about">
+<div class="container">
+<div class="row">
+<h2>Buscador de software</h2>
+
+<h4>Busca por funcion, tipo o nombre</h4>
+</div>
+<p style="margin: 0px 0px 11px; text-align: justify;"><span style="margin: 0px; line-height: 107%; font-size: 12pt;">&nbsp;</span></p>
+
+
+
+
+
+
+<!-- ****************************** Buscador tiempo Real *********************************** -->
+<div class="container">
+
+  <div class="row">
+    <div class="col-md-3 col-md-offset-1">
+      <div class="input-group">
+        <span class="input-group-addon"><span class="glyphicon glyphicon glyphicon-search" aria-hidden="true"></span></span>
+        <input type="text" class="form-control" id="search" placeholder="Busque aqui" onKeyUp="buscarSoftware(this.value,<?=$campus?>)">
+        
+      </div>
+    </div>
+    <div class=".col-md-3 col-md-offset-3" id="result">
+    </div>
+  </div>
+</div>
+
+<!-- ****************************** FIN del Buscador tiempo Real *********************************** -->
+
+
+
+
+
+
+
+
+
+</div>
+</div>
+</section>
+
+
+<div class="api-map" id="contact">
+<div class="container-fluid">
+<div class="row">
+<div class="col-md-12 map" id="map"></div>
+</div>
+</div>
+</div>
+
+<footer class="footer clearfix">
+<div class="container">
+<div class="row">
+</div>
+</div>
+
+
+<!-- script tags
+	============================================================= -->
+</footer>
+
+
+
+</body>
+</html>
