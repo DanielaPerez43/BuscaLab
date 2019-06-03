@@ -1,0 +1,1173 @@
+<?php 
+//		error_reporting(E_ALL);
+	include("php/conexion.php");	
+session_start();
+$labid=$_GET['identificador'];
+if($labid!=""){
+$_SESSION['lab_id']=$labid;
+}	
+else{
+   $labid= $_SESSION['lab_id'];
+}
+
+if(isset($_POST['reservar'])){
+   $mesCal=$_POST['mesCal']; 
+   $yearCal=$_POST['yearCal']; 
+   $diaCal=$_POST['selectDia'];
+   $horaInicio=$_POST['selectHoraInicio'];
+   $horaFin=$_POST['selectHoraFin'];
+   $nombre=$_POST['nombre'];
+   $apellido=$_SESSION['apellido'];
+   $labid= $_SESSION['lab_id'];
+   $Representante=$nombre." ".$apellido;
+   
+   if($horaFin!="--"){
+   $queryInsertarReservacion="INSERT INTO `citas`(`hora_inicio`, `hora_fin`, `representante`, `dia`, `mes`, `anio`, `lab_ID`) VALUES ('$horaInicio','$horaFin','$Representante','$diaCal','$mesCal','$yearCal','$labid')";
+   $reusltInsertarReservacion=mysqli_query($conn,$queryInsertarReservacion);
+   }
+  
+}
+ $queryLaboratorios =  "SELECT * FROM laboratory WHERE id = '$labid'";
+   $resLaboratorios = mysqli_query($conn,$queryLaboratorios);
+        while ($dataLaboratorios = mysqli_fetch_assoc($resLaboratorios)) {
+         $piso=$dataLaboratorios['floor'];
+                 $cap=$dataLaboratorios['capacity'];
+                 $des=$dataLaboratorios['description'];
+
+         $laboratorio=$dataLaboratorios['name'];
+         $foto=$dataLaboratorios['photo'];
+         $campus_id=$dataLaboratorios['campus_id'];
+     }
+ $querycampus =  "SELECT * FROM campus WHERE ID = '$campus_id'";
+   $rescampus = mysqli_query($conn,$querycampus);
+        while ($dataLaboratorios = mysqli_fetch_assoc($rescampus)) {
+
+         $nombre_campus=$dataLaboratorios['name'];
+     }
+
+class Calendar {   
+     
+    /**
+     * Constructor
+     */
+    public function __construct(){      
+        $this->naviHref = htmlentities($_SERVER['PHP_SELF']);
+    }
+     
+    /********************* PROPERTY ********************/  
+    private $dayLabels = array("Lun","Mar","Mie","Jue","Vie","Sab","Dom");
+     
+    private $currentYear=0;
+     
+    private $currentMonth=0;
+     
+    private $currentDay=0;
+     
+    private $currentDate=null;
+     
+    private $daysInMonth=0;
+     
+    private $naviHref= null;
+    
+    //private $diaActual=0;
+     
+    /********************* PUBLIC **********************/  
+        
+    /**
+    * print out the calendar 
+    */
+    public function show() {
+        $year  == null;
+         
+        $month == null;
+         
+        if(null==$year&&isset($_GET['year'])){
+ 
+            $year = $_GET['year'];
+         
+        }else if(null==$year){
+ 
+            $year = date("Y",time());   
+         
+        }           
+         
+        if(null==$month&&isset($_GET['month'])){
+ 
+            $month = $_GET['month'];
+         
+        }else if(null==$month){
+ 
+            $month = date("m",time());
+         
+        }                   
+         
+        $this->currentYear=$year;
+         
+        $this->currentMonth=$month;
+         
+        $this->daysInMonth=$this->_daysInMonth($month,$year);   
+         
+        $content='<div id="calendar">'.
+                        '<div class="box">'.
+                        $this->_createNavi().
+                        '</div>'.
+                        '<table class="ai1ec-month-view ai1ec-popover-boundary"> <thead>'.
+                                '<tr>'.$this->_createLabels().'</thead></tr>';    
+                                $content.='<div class="clear"></div>';      
+                                    
+                                 
+                                $weeksInMonth = $this->_weeksInMonth($month,$year);
+                                // Create weeks in a month
+                                for( $i=0; $i<$weeksInMonth; $i++ ){
+                                     
+                                        $content.='<tr class="ai1ec-week">'; 
+                                    //Create days in a week
+                                    for($j=1;$j<=7;$j++){
+                                        $content.=$this->_showDay($i*7+$j);
+                                        
+                                    }
+                                    $content.='</tr>';
+                                }
+                                 
+                                
+                                 
+                                $content.='<div class="clear"></div>';      
+             
+                        $content.='</table>'; 
+                 
+        $content.='</div>';
+        return $content;    
+    }
+    	
+     
+    /********************* PRIVATE **********************/ 
+    /**
+    * create the li element for ul
+    */
+    private function _showDay($cellNumber){ 
+         
+        if($this->currentDay==0){
+             
+            $firstDayOfTheWeek = date('N',strtotime($this->currentYear.'-'.$this->currentMonth.'-01'));
+                     
+            if(intval($cellNumber) == intval($firstDayOfTheWeek)){
+                 
+                $this->currentDay=1;
+                 
+            }
+        }
+         
+        if( ($this->currentDay!=0)&&($this->currentDay<=$this->daysInMonth) ){
+             
+            $this->currentDate = date('Y-m-d',strtotime($this->currentYear.'-'.$this->currentMonth.'-'.($this->currentDay)));
+             
+            $cellContent = $this->currentDay;
+            $cellMonth = $this->currentMonth;
+            $cellYear = $this->currentYear;
+             
+            $this->currentDay++;    
+             
+        }else{
+             
+            $this->currentDate =null;
+ 
+            $cellContent=null;
+        }
+             
+         if($cellContent!=null){
+             //$dia23="23";
+             $labid= $_SESSION['lab_id'];
+           $conn=new mysqli("localhost", "anevico_software_cert", "Tecmi1209!", "anevico_basetecmi") or die("ConnectionFailed");
+             $queryFechaReserva="SELECT * FROM citas WHERE dia='$cellContent' AND mes='$cellMonth' AND anio='$cellYear' AND lab_ID='$labid' ORDER BY hora_inicio ASC";
+             $resultFechaReserva=mysqli_query($conn,$queryFechaReserva);
+             $rowCount=mysqli_num_rows($resultFechaReserva);
+            // echo($rowCount);
+             $resultFechaReservada='<td>'.'<div class="ai1ec-day"><div class="ai1ec-date">'.$cellContent.'</div>';
+				
+            if($rowCount!=0){
+                while($dataFechaReserva=mysqli_fetch_assoc($resultFechaReserva)){
+                    $horaInicio=$dataFechaReserva['hora_inicio'];
+                    $horaFin=$dataFechaReserva['hora_fin'];
+                    $profesor=$dataFechaReserva['representante'];
+                    //$dia=$dataFechaReserva['dia'];
+                   $resultFechaReservada.= '<a
+																					data-start-day="'.$cellContent.'"
+											data-end-day="'.$cellContent.'"
+											data-start-truncated="false"
+											data-end-truncated="false"
+																				data-instance-id="9"
+										class="ai1ec-event-container ai1ec-load-event
+											ai1ec-popup-trigger
+											ai1ec-event-id-178
+											ai1ec-event-instance-id-9
+																						ai1ec-multiday"
+										>
+
+										<div class="ai1ec-event"
+											 style=""
+											>
+											<span class="ai1ec-event-title">'.$horaInicio.' - '.$horaFin.'	</span>
+																							<span class="ai1ec-event-time">'.
+													$profesor.'
+												</span>
+												
+																					</div>
+								
+									</a>
+									<div class="ai1ec-popover ai1ec-popup ai1ec-popup-in-month-view
+									            ai1ec-event-id-178
+									            ai1ec-event-instance-id-9
+									            >
+									            ">
+																				<span class="ai1ec-popup-title">
+											<a class="ai1ec-load-event"
+											<!--	href=""-->
+												</a>
+																					</span>
+
+										
+										<div class="ai1ec-event-time">
+										Profesor: '.$profesor.'<br>
+										Hora:
+											<!--Ago 23 a las 3:00 pm – Ago 26 a las 4:00 pm-->'.
+											$horaInicio.' - '.$horaFin.'
+											
+										</div>
+
+									<!--	<a class="ai1ec-load-event"
+											href="">-->
+											<div class="ai1ec-event-avatar timely  ai1ec-content_img ai1ec-landscape"><img src="http://www.acomee.org/wp-content/uploads/2017/12/pub_encuentro_enero-300x169.png" width="300" height="169" /></div>
+									<!--	</a>-->
+										<div class="ai1ec-sas-actions ai1ec-btn-group ai1ec-clearfix">
+	<a href="#" target="_blank" class="ai1ec-sas-action ai1ec-btn ai1ec-btn-primary
+			ai1ec-btn-xs			ai1ec-btn-sm ai1ec-sas-action-tickets">
+			<i class="ai1ec-fa ai1ec-fa-ticket"></i>
+			<span class="ai1ec-hidden-xs">Entradas</span>
+		</a>
+	</div>
+
+
+																			</div>';
+                }
+                return $resultFechaReservada.='</div>'.'</td>';
+            } 
+            else {
+                return '<td class="ai1ec-day">'.'<div class="ai1ec-day-stretcher"></div>'.'<div class="ai1ec-day">
+								<div class="ai1ec-date">'.$cellContent.'</div></div>'.'</td>';
+            }
+         }
+         
+        return '<td class="ai1ec-day">'.'<div class="ai1ec-day-stretcher"></div>'.'<div class="ai1ec-day">
+								<div class="ai1ec-date">'.$cellContent.'</div></div>'.'</td>';
+    }
+     
+    /**
+    * create navigation 
+    */
+    private function _createNavi(){
+         
+        $nextMonth = $this->currentMonth==12?1:intval($this->currentMonth)+1;
+         
+        $nextYear = $this->currentMonth==12?intval($this->currentYear)+1:$this->currentYear;
+         
+        $preMonth = $this->currentMonth==1?12:intval($this->currentMonth)-1;
+         
+        $preYear = $this->currentMonth==1?intval($this->currentYear)-1:$this->currentYear;
+         
+        return
+            '<div class="header">'.
+                '<a class="prev" target="_self" href="'.$this->naviHref.'?month='.sprintf('%02d',$preMonth).'&year='.$preYear.'">Prev</a>'.
+                    '<span class="title">'.date('Y M',strtotime($this->currentYear.'-'.$this->currentMonth.'-1')).'</span>'.
+                '<a class="next" target="_self" href="'.$this->naviHref.'?month='.sprintf("%02d", $nextMonth).'&year='.$nextYear.'">Next</a>'.
+            '</div>';
+    }
+         
+    /**
+    * create calendar week labels
+    */
+    private function _createLabels(){   
+                 
+        $content='';
+         
+        foreach($this->dayLabels as $index=>$label){
+             
+            $content.='<th scope="col" class="ai1ec-weekday">'.$label.'</th>';
+ 
+        }
+         
+        return $content;
+    }
+     
+     
+     
+    /**
+    * calculate number of weeks in a particular month
+    */
+    private function _weeksInMonth($month=null,$year=null){
+         
+        if( null==($year) ) {
+            $year =  date("Y",time());  
+        }
+         
+        if(null==($month)) {
+            $month = date("m",time());
+        }
+         
+        // find number of days in this month
+        $daysInMonths = $this->_daysInMonth($month,$year);
+         
+        $numOfweeks = ($daysInMonths%7==0?0:1) + intval($daysInMonths/7);
+         
+        $monthEndingDay= date('N',strtotime($year.'-'.$month.'-'.$daysInMonths));
+         
+        $monthStartDay = date('N',strtotime($year.'-'.$month.'-01'));
+         
+        if($monthEndingDay<$monthStartDay){
+             
+            $numOfweeks++;
+         
+        }
+         
+        return $numOfweeks;
+    }
+ 
+    /**
+    * calculate number of days in a particular month
+    */
+    private function _daysInMonth($month=null,$year=null){
+         
+        if(null==($year))
+            $year =  date("Y",time());  
+ 
+        if(null==($month))
+            $month = date("m",time());
+             
+        return date('t',strtotime($year.'-'.$month.'-01'));
+    }
+     
+}
+		
+?>
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Lab</title>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="">
+<meta name="keywords" content="">
+<meta name="author" content="">
+<title>Calendario</title>
+<link rel='dns-prefetch' href='//fonts.googleapis.com' />
+<link rel='dns-prefetch' href='//s.w.org' />
+<link rel="alternate" type="application/rss+xml" title=" &raquo; Feed" href="http://www.acomee.org/feed/" />
+<link rel="alternate" type="application/rss+xml" title=" &raquo; RSS de los comentarios" href="http://www.acomee.org/comments/feed/" />
+		<script type="text/javascript">
+			window._wpemojiSettings = {"baseUrl":"https:\/\/s.w.org\/images\/core\/emoji\/2.4\/72x72\/","ext":".png","svgUrl":"https:\/\/s.w.org\/images\/core\/emoji\/2.4\/svg\/","svgExt":".svg","source":{"concatemoji":"http:\/\/www.acomee.org\/wp-includes\/js\/wp-emoji-release.min.js?ver=4.9.5"}};
+			!function(a,b,c){function d(a,b){var c=String.fromCharCode;l.clearRect(0,0,k.width,k.height),l.fillText(c.apply(this,a),0,0);var d=k.toDataURL();l.clearRect(0,0,k.width,k.height),l.fillText(c.apply(this,b),0,0);var e=k.toDataURL();return d===e}function e(a){var b;if(!l||!l.fillText)return!1;switch(l.textBaseline="top",l.font="600 32px Arial",a){case"flag":return!(b=d([55356,56826,55356,56819],[55356,56826,8203,55356,56819]))&&(b=d([55356,57332,56128,56423,56128,56418,56128,56421,56128,56430,56128,56423,56128,56447],[55356,57332,8203,56128,56423,8203,56128,56418,8203,56128,56421,8203,56128,56430,8203,56128,56423,8203,56128,56447]),!b);case"emoji":return b=d([55357,56692,8205,9792,65039],[55357,56692,8203,9792,65039]),!b}return!1}function f(a){var c=b.createElement("script");c.src=a,c.defer=c.type="text/javascript",b.getElementsByTagName("head")[0].appendChild(c)}var g,h,i,j,k=b.createElement("canvas"),l=k.getContext&&k.getContext("2d");for(j=Array("flag","emoji"),c.supports={everything:!0,everythingExceptFlag:!0},i=0;i<j.length;i++)c.supports[j[i]]=e(j[i]),c.supports.everything=c.supports.everything&&c.supports[j[i]],"flag"!==j[i]&&(c.supports.everythingExceptFlag=c.supports.everythingExceptFlag&&c.supports[j[i]]);c.supports.everythingExceptFlag=c.supports.everythingExceptFlag&&!c.supports.flag,c.DOMReady=!1,c.readyCallback=function(){c.DOMReady=!0},c.supports.everything||(h=function(){c.readyCallback()},b.addEventListener?(b.addEventListener("DOMContentLoaded",h,!1),a.addEventListener("load",h,!1)):(a.attachEvent("onload",h),b.attachEvent("onreadystatechange",function(){"complete"===b.readyState&&c.readyCallback()})),g=c.source||{},g.concatemoji?f(g.concatemoji):g.wpemoji&&g.twemoji&&(f(g.twemoji),f(g.wpemoji)))}(window,document,window._wpemojiSettings);
+		
+// Get the modal
+var modal = document.getElementById('id01');
+
+// When the user clicks anywhere outside of the modal, close it
+window.onclick = function(event) {
+    if (event.target == modal) {
+        modal.style.display = "none";
+    }
+}
+function showhidelogin(){
+
+}
+function functionhola(){
+   // alert("tugfa");								
+            
+}
+		</script>
+		<style type="text/css">
+img.wp-smiley,
+img.emoji {
+	display: inline !important;
+	border: none !important;
+	box-shadow: none !important;
+	height: 1em !important;
+	width: 1em !important;
+	margin: 0 .07em !important;
+	vertical-align: -0.1em !important;
+	background: none !important;
+	padding: 0 !important;
+}
+.botonsesion{
+width:auto; 
+display:inline;
+}
+
+.usuarioreint{
+width:auto; 
+display:none;
+}
+
+input[type=text], input[type=password] {
+    width: 100%;
+    padding: 12px 20px;
+    margin: 8px 0;
+    display: inline-block;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+}
+
+/* Set a style for all buttons */
+button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 14px 20px;
+    margin: 8px 0;
+    border: none;
+    cursor: pointer;
+    width: 100%;
+}
+.button2 {
+    background-color: #ff0000;
+    color: black;
+    
+}
+
+button:hover {
+    opacity: 0.8;
+}
+
+/* Extra styles for the cancel button */
+.cancelbtn {
+    width: auto;
+    padding: 10px 18px;
+    background-color: #f44336;
+}
+
+/* Center the image and position the close button */
+.imgcontainer {
+    text-align: center;
+    margin: 24px 0 12px 0;
+    position: relative;
+}
+
+img.avatar {
+    width: 40%;
+    border-radius: 50%;
+}
+
+.container2 {
+    padding: 16px;
+}
+
+span.psw {
+    float: right;
+    padding-top: 16px;
+}
+
+/* The Modal (background) */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed; /* Stay in place */
+    z-index: 1; /* Sit on top */
+    left: 0;
+    top: 0;
+    width: 100%; /* Full width */
+    height: 100%; /* Full height */
+    overflow: auto; /* Enable scroll if needed */
+    background-color: rgb(0,0,0); /* Fallback color */
+    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+    padding-top: 60px;
+}
+
+/* Modal Content/Box */
+.modal-content {
+    background-color: #fefefe;
+    margin: 5% auto 15% auto; /* 5% from the top, 15% from the bottom and centered */
+    border: 1px solid #888;
+    width: 80%; /* Could be more or less, depending on screen size */
+}
+
+/* The Close Button (x) */
+.close {
+    position: absolute;
+    right: 25px;
+    top: 0;
+    color: #000;
+    font-size: 35px;
+    font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+    color: red;
+    cursor: pointer;
+}
+
+/* Add Zoom Animation */
+.animate {
+    -webkit-animation: animatezoom 0.6s;
+    animation: animatezoom 0.6s
+}
+
+@-webkit-keyframes animatezoom {
+    from {-webkit-transform: scale(0)} 
+    to {-webkit-transform: scale(1)}
+}
+    
+@keyframes animatezoom {
+    from {transform: scale(0)} 
+    to {transform: scale(1)}
+}
+
+/* Change styles for span and cancel button on extra small screens */
+@media screen and (max-width: 300px) {
+    span.psw {
+       display: block;
+       float: none;
+    }
+    .cancelbtn {
+       width: 100%;
+    }
+}
+</style>
+<link rel='stylesheet' id='ai1ec_style-css'  href='//www.acomee.org/wp-content/plugins/all-in-one-event-calendar/public/themes-ai1ec/vortex/css/ai1ec_parsed_css.css?ver=2.5.30' type='text/css' media='all' />
+<link rel='stylesheet' id='bootstrap-css'  href='http://www.acomee.org/wp-content/themes/awada/css/bootstrap.css?ver=4.9.5' type='text/css' media='all' />
+<link rel='stylesheet' id='awada-css'  href='http://www.acomee.org/wp-content/themes/ibiz/style.css?ver=4.9.5' type='text/css' media='all' />
+<link rel='stylesheet' id='color-scheme-css'  href='http://www.acomee.org/wp-content/themes/awada/css/skins/green.css?ver=4.9.5' type='text/css' media='all' />
+<link rel='stylesheet' id='animate-css'  href='http://www.acomee.org/wp-content/themes/awada/css/animate.css?ver=4.9.5' type='text/css' media='all' />
+<link rel='stylesheet' id='owl-carousel-css'  href='http://www.acomee.org/wp-content/themes/awada/css/owl-carousel.css?ver=4.9.5' type='text/css' media='all' />
+<link rel='stylesheet' id='prettyPhoto-css'  href='http://www.acomee.org/wp-content/themes/awada/css/prettyPhoto.css?ver=4.9.5' type='text/css' media='all' />
+<link rel='stylesheet' id='slider-style-css'  href='http://www.acomee.org/wp-content/themes/awada/css/slider/slider-style.css?ver=4.9.5' type='text/css' media='all' />
+<link rel='stylesheet' id='custom.css-css'  href='http://www.acomee.org/wp-content/themes/awada/css/slider/custom.css?ver=4.9.5' type='text/css' media='all' />
+<link rel='stylesheet' id='PT-Sans-css'  href='http://fonts.googleapis.com/css?family=PT+Sans%3A400%2C400italic%2C700%2C700italic&#038;ver=4.9.5' type='text/css' media='all' />
+<link rel='stylesheet' id='ibiz-parent-style-css'  href='http://www.acomee.org/wp-content/themes/awada/style.css?ver=4.9.5' type='text/css' media='all' />
+<link rel='stylesheet' id='ibiz-color-scheme-child-css'  href='http://www.acomee.org/wp-content/themes/ibiz/css/skins/skyblue.css?ver=4.9.5' type='text/css' media='all' />
+<link rel='stylesheet' id='kirki-styles-awada_theme-css'  href='http://www.acomee.org/wp-content/themes/awada/inc/kirki/assets/css/kirki-styles.css?ver=3.0.17-dev' type='text/css' media='all' />
+<style id='kirki-styles-awada_theme-inline-css' type='text/css'>
+#sitetopbar{background:#f8504b;border-bottom:#f8504b;}#sitetopbar, #sitetopbar a{color:#fff;}#awada-header, #awada-header .navbar{background:#fff;}.arrow-up{border-bottom:#fff;}.navbar-default .navbar-brand, #awada-header .navbar-nav > li > a, .dropdown-menu > li > a,.site-title a, .site-description{color:#222222;}#awada-header .dropmenu img{margin-top:-13px;}#awada-header .site-branding-text{margin-top:-13px;}#awada-header .site-branding-text h1, #awada-header .site-branding-text p.site-title{font-family:"Eagle Lake", "Comic Sans MS", cursive, sans-serif;font-size:28px;font-style:bold;}#awada-header .site-branding-text p.site-description{font-family:"EB Garamond", Georgia, serif;font-size:14px;font-weight:700;font-style:normal;}#awada-header .navbar-nav > li > a{font-family:Georgia;font-style:bold;}body, h1, h2, h3, h4, h5, h6, p, em, blockquote{font-family:Georgia;font-style:bold;}.main_title h2{font-family:Georgia;font-style:bold;}#awada_footer_area{background:#121214;}#awada_footer_area li a, #awada_footer_area a{color:#f8504b;}#copyrights{background:#f8504b;}#copyrights, .footer-area-menu li a{color:#fff;}
+</style>
+<script type='text/javascript' src='http://www.acomee.org/wp-content/plugins/all-in-one-event-calendar/public/js_cache/calendar.js?ver=2.5.30'></script>
+<script type='text/javascript' src='http://www.acomee.org/wp-includes/js/jquery/jquery.js?ver=1.12.4'></script>
+<script type='text/javascript' src='http://www.acomee.org/wp-includes/js/jquery/jquery-migrate.min.js?ver=1.4.1'></script>
+<link rel='https://api.w.org/' href='http://www.acomee.org/wp-json/' />
+<link rel="EditURI" type="application/rsd+xml" title="RSD" href="http://www.acomee.org/xmlrpc.php?rsd" />
+<link rel="wlwmanifest" type="application/wlwmanifest+xml" href="http://www.acomee.org/wp-includes/wlwmanifest.xml" /> 
+<meta name="generator" content="WordPress 4.9.5" />
+<link rel="canonical" href="http://www.acomee.org/calendar/" />
+<link rel='shortlink' href='http://www.acomee.org/?p=49' />
+<link rel="alternate" type="application/json+oembed" href="http://www.acomee.org/wp-json/oembed/1.0/embed?url=http%3A%2F%2Fwww.acomee.org%2Fcalendar%2F" />
+<link rel="alternate" type="text/xml+oembed" href="http://www.acomee.org/wp-json/oembed/1.0/embed?url=http%3A%2F%2Fwww.acomee.org%2Fcalendar%2F&#038;format=xml" />
+		<style type="text/css">.recentcomments a{display:inline !important;padding:0 !important;margin:0 !important;}</style>
+				<style id="awada-custom-header-styles" type="text/css">
+					.site-title,
+			.site-description {
+				position: absolute;
+				clip: rect(1px, 1px, 1px, 1px);
+			}
+			
+			
+			/*******************************Calendar Top Navigation*********************************/
+div#calendar{
+  margin:0px auto;
+  padding:0px;
+  width: 602px;
+  font-family:Helvetica, "Times New Roman", Times, serif;
+}
+ 
+div#calendar div.box{
+    position:relative;
+    top:0px;
+    left:0px;
+    width:100%;
+    height:40px;
+    background-color:   #787878 ;       
+}
+ 
+div#calendar div.header{
+    line-height:40px;   
+    vertical-align:middle;
+    position:absolute;
+    left:11px;
+    top:0px;
+    width:582px;
+    height:40px;    
+    text-align:center;
+}
+ 
+div#calendar div.header a.prev,div#calendar div.header a.next{  
+    position:absolute;
+    top:0px;    
+    height: 17px;
+    display:block;
+    cursor:pointer; 
+    text-decoration:none;
+    color:#FFF;
+}
+ 
+div#calendar div.header span.title{
+    color:#FFF;
+    font-size:18px;
+}
+ 
+ 
+div#calendar div.header a.prev{ 
+    left:0px;
+}
+ 
+div#calendar div.header a.next{ 
+    right:0px;
+}
+ 
+ 
+ 
+ 
+/*******************************Calendar Content Cells*********************************/
+div#calendar div.box-content{
+    border:1px solid #787878 ;
+    border-top:none;
+}
+ 
+ 
+ 
+div#calendar ul.label{
+    float:left;
+    margin: 0px;
+    padding: 0px;
+    margin-top:5px;
+    margin-left: 5px;
+}
+ 
+div#calendar ul.label li{
+    margin:0px;
+    padding:0px;
+    margin-right:5px;   
+    float:left;
+    list-style-type:none;
+    width:80px;
+    height:40px;
+    line-height:40px;
+    vertical-align:middle;
+    text-align:center;
+    color:#000;
+    font-size: 15px;
+    background-color: transparent;
+}
+ 
+ 
+div#calendar ul.dates{
+    float:left;
+    margin: 0px;
+    padding: 0px;
+    margin-left: 5px;
+    margin-bottom: 5px;
+}
+ 
+/** overall width = width+padding-right**/
+div#calendar ul.dates li{
+    margin:0px;
+    padding:0px;
+    margin-right:5px;
+    margin-top: 5px;
+    line-height:80px;
+    vertical-align:middle;
+    float:left;
+    list-style-type:none;
+    width:80px;
+    height:80px;
+    font-size:25px;
+    background-color: #DDD;
+    color:#000;
+    text-align:center;  
+}
+ 
+:focus{
+    outline:none;
+}
+ 
+div.clear{
+    clear:both;
+}      
+Now let us show the calendar.
+
+			
+			
+			</style>
+			<script type="text/javascript">
+function comprobarHorario(){
+         var selectDia = document.getElementById("selectDia").value;
+         var mes = document.getElementById("mesCal").value;
+         var year = document.getElementById("yearCal").value;
+         document.getElementById("campoHorarioFin").innerHTML="";
+         $.post('ajax/compruebaHorario.php', {selectDia: selectDia, mes: mes, year: year}, function(dataHorarios){
+                    $("#campoHorario").html(dataHorarios);
+                });
+                
+     }	
+     function comprobarHorarioFin(){
+         var selectDia = document.getElementById("selectDia").value;
+         var mes = document.getElementById("mesCal").value;
+         var year = document.getElementById("yearCal").value;
+         var horaInicio = document.getElementById("selectHoraInicio").value;
+         $.post('ajax/compruebaHorarioFin.php', {selectDia: selectDia, mes: mes, horaInicio: horaInicio, year: year}, function(dataHorariosFin){
+                    $("#campoHorarioFin").html(dataHorariosFin);
+                });
+         
+     }
+     function comprobarReservacion(){
+         var output='<input type="submit" name="reservar" value="Reservar">';
+         $("#botonReservar").html(output);
+     }
+</script>
+	<link rel="icon" href="http://www.acomee.org/wp-content/uploads/2017/11/cropped-logoACOMEEMEXICO2016-2-32x32.jpg" sizes="32x32" />
+<link rel="icon" href="http://www.acomee.org/wp-content/uploads/2017/11/cropped-logoACOMEEMEXICO2016-2-192x192.jpg" sizes="192x192" />
+<link rel="apple-touch-icon-precomposed" href="http://www.acomee.org/wp-content/uploads/2017/11/cropped-logoACOMEEMEXICO2016-2-180x180.jpg" />
+<meta name="msapplication-TileImage" content="http://www.acomee.org/wp-content/uploads/2017/11/cropped-logoACOMEEMEXICO2016-2-270x270.jpg" />
+
+</head>
+
+<body class="page-template-default page page-id-49 wp-custom-logo">
+
+<div id="sitetopbar" class="clearfix">
+	<div class="container">
+				<div class="col-lg-6 col-md-6 col-sm-6 col-xs-12" id="topbar-contact">
+			<div class="topbar-contact">
+								<span id="hola"><?=$message?></span>
+								<span class=""></span>
+							</div><!-- end topbar-contact -->
+		</div><!-- end columns -->
+				<div class="col-lg-6 col-md-6 col-sm-6 col-xs-12" id="topbar-social-links">
+			<div class="topbar-social-links">
+				<div class="menu-redes-sociales-container"><ul id="menu-redes-sociales" class="nav navbar-nav top-social"><li id="menu-item-237" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-237"><span class="">
+<button onclick="document.getElementById('id01').style.display='block'" class="botonsesion" onsubmit="shohidelogin" id="btnses">Iniciar Sesión</button></span></li>
+<script>
+								//alert("tugfa");
+								var hola = document.getElementById("hola").innerText;
+								var btnses = document.getElementById("btnses");
+								if(hola != "Usuario o contraseña incorrectos" && hola!=""){
+								btnses.style.display="none";
+								}
+								</script>
+<li id="menu-item-238" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-238"><span class="usuarioreint">Usuario incorrecto</span></li>
+<li id="menu-item-241" class="menu-item menu-item-type-custom menu-item-object-custom menu-item-241"> 
+<button onclick="document.getElementById('id01').style.display='block'" class="usuarioreint" onsubmit="shohidelogin">Reintentar</button></li>
+</ul></div>	
+<div id="id01" class="modal">
+  
+  <form class="modal-content animate" action="" method="post">
+    <div class="imgcontainer">
+      <span onclick="document.getElementById('id01').style.display='none'" class="close" title="Close">&times;</span>
+      <img src="pictures/thumbnail_bannertecmi.png" alt="Avatar" class="">
+    </div>
+
+    <div class="container2">
+      <label for="uname"><b>Usuario</b></label>
+      <input type="text" placeholder="usuario" name="uname" required>
+
+      <label for="psw"><b>Contraseña</b></label>
+      <input type="password" placeholder="contraseña" name="psw" required>
+        
+      <button type="submit" name="login">Login</button>
+     
+    </div>
+
+  </form>
+</div>			
+			</div><!-- end social icons -->
+		</div><!-- end columns -->
+			</div><!-- end container -->
+</div><!-- end topbar -->
+<header id="awada-header" style="" class="navi_menu ">
+	<span id="header_shadow"></span>
+	<div class="container">
+		<nav class="navbar dropmenu navbar-default" >
+			<div class="navbar-header">
+				<button type="button" data-toggle="collapse" data-target="#navbar-collapse-1" class="navbar-toggle">
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+					<span class="icon-bar"></span>
+				</button>
+					<a href="index.php" class="custom-logo-link" rel="home" itemprop="url"><img width="1234" height="219" src="pictures/thumbnail_bannertecmi.png" class="custom-logo" alt="" itemprop="logo" srcset="pictures/thumbnail_bannertecmi.png 1234w, pictures/thumbnail_bannertecmi-300x53.png 300w, pictures/thumbnail_bannertecmi-768x136.png 768w, pictures/thumbnail_bannertecmi-1024x182.png 1024w" sizes="(max-width: 1234px) 100vw, 1234px" /></a>				<div class="site-branding-text">
+							<p class="site-title" id="logo_text_id"><a id="alogo" href="index.php" rel="home"></a></p>
+			
+					</div><!-- .site-branding-text -->					
+			</div><!-- end navbar-header -->
+			
+<div id="navbar-collapse-1" class="navbar-collapse collapse navbar-left">
+                    <div class="menu-menu-primario-container"><ul id="menu-menu-primario" class="nav navbar-nav"><li id="menu-item-53" class="normal_menu mobile_menu_toggle menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-53 dropdown"><a href="#http://www.acomee.org/category/quienes-somos/" data-toggle="dropdown" data-target="#" class="dropdown-toggle">Quienes somos<i class="fa fa-angle-down"></i></a>
+
+
+<li id="menu-item-54" class="normal_menu mobile_menu_toggle menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-54 dropdown"><a href="#http://www.acomee.org/category/servicios/" data-toggle="dropdown" data-target="#" class="dropdown-toggle">Eventos<i class="fa fa-angle-down"></i></a>
+
+
+<li id="menu-item-52" class="normal_menu mobile_menu_toggle menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-52 dropdown"><a href="#http://www.acomee.org/category/eventos/" data-toggle="dropdown" data-target="#" class="dropdown-toggle">Campus<i class="fa fa-angle-down"></i></a>
+
+</li>
+
+<li id="menu-item-55" class="normal_menu mobile_menu_toggle menu-item menu-item-type-taxonomy menu-item-object-category menu-item-has-children menu-item-55 dropdown"><a href="#http://www.acomee.org/category/socios/" data-toggle="dropdown" data-target="#" class="dropdown-toggle">Laboratorios<i class="fa fa-angle-down"></i></a>
+
+</li>
+
+<li id="menu-item-51" class="normal_menu mobile_menu_toggle menu-item menu-item-type-taxonomy menu-item-object-category menu-item-51"><a href="buscador.php?identificador=3">Como funciono</a></li>
+</ul></div>                         <!-- end navbar-nav -->
+			</div><!-- #navbar-collapse-1 -->
+		</nav><!-- end navbar dropmenu navbar-default -->
+	</div><!-- end container -->
+</header><!-- end awada header style --><section class="post-wrapper-top section-shadow clearfix">
+	<div class="container">
+		<div class="col-lg-12">
+			<div class="col-lg-7 awada_pag_title">
+									<h2>Calendario de apartado</h2>
+								</div>
+			<div class="col-lg-5 awada_pag_breadcrumb">
+				<ul class="breadcrumb pull-right"><li><a href="http://www.acomee.org">Home</a><i class="fa fa-chevron-circle-right breadcrumbs_space"></i>Calendario</ul>			</div>
+		</div>
+	</div>
+</section><!-- end post-wrapper-top -->
+<section class="blog-wrapper">
+	<div class="container">
+				<div id="content" class="col-lg-9 col-md-9 col-sm-12 col-xs-12">
+			<div class="row">
+			   <div class="blog-masonry page_desc">
+					<div class="col-lg-12">
+						<div id="post-49" class="blog-carousel post-49 page type-page status-publish hentry">
+	<div class="content_entry">
+			</div><!-- end content_entry -->
+	
+		<div class="blog-header">
+		<h3><a title="Calendario"><?php echo $laboratorio." de ".$nombre_campus;?></a></h3>
+		<h4><?=$message2?></h4>
+			</div><!-- end blog-header -->
+		<div class="blog-desc">
+		<!-- START All-in-One Event Calendar Plugin - Version 2.5.30 -->
+<div id="ai1ec-container"
+	 class="ai1ec-main-container ">
+	
+	<div id="ai1ec-calendar" class="timely ai1ec-calendar">
+					
+						<div class="timely ai1ec-calendar-toolbar ai1ec-clearfix
+		">
+		<ul class="ai1ec-nav ai1ec-nav-pills ai1ec-pull-left ai1ec-filters">
+			
+			
+					</ul>
+		<div class="ai1ec-pull-right">
+					
+				</div>
+	</div>
+		<div id="ai1ec-calendar-view-container"
+			 class="ai1ec-calendar-view-container">
+			<div id="ai1ec-calendar-view-loading"
+				 class="ai1ec-loading ai1ec-calendar-view-loading"></div>
+			<div id="ai1ec-calendar-view" class="ai1ec-calendar-view">
+				<div class="ai1ec-clearfix">
+
+
+	<div class="ai1ec-title-buttons ai1ec-btn-toolbar">
+		
+		<div class="ai1ec-pagination ai1ec-btn-group">
+				<!--		<a class="ai1ec-prev-year ai1ec-load-view ai1ec-btn ai1ec-btn-sm
+				ai1ec-btn-default "
+				data-type="json"
+				href="http&#x3A;&#x2F;&#x2F;www.acomee.org&#x2F;calendar&#x2F;action&#x7E;month&#x2F;exact_date&#x7E;1501563600&#x2F;request_format&#x7E;json&#x2F;">
+				<i class="ai1ec-fa ai1ec-fa-angle-double-left"></i> 2017
+			</a>-->
+			<? /*if($siguienteBool==1){
+			?>
+			
+			
+								<a class="ai1ec-btn ai1ec-btn-sm
+				ai1ec-btn-default "
+				href="http://luismg.mototli.com/citas/index.php?s=0">
+				<i class="ai1ec-fa ai1ec-fa-angle-left"></i> <?=$mesActual?> 
+			</a>
+			
+		<?	}*/?>
+	
+			</div>
+
+		
+					
+			</div>
+			
+	</div>
+
+<? $calendar = new Calendar();
+ 
+echo $calendar->show();
+?>
+
+<div class="ai1ec-pull-left"><div class="ai1ec-pagination ai1ec-btn-group">
+						<a class="ai1ec-prev-year ai1ec-load-view ai1ec-btn ai1ec-btn-sm
+				ai1ec-btn-default "
+				data-type="json"
+				href="http&#x3A;&#x2F;&#x2F;www.acomee.org&#x2F;calendar&#x2F;action&#x7E;month&#x2F;exact_date&#x7E;1501563600&#x2F;request_format&#x7E;json&#x2F;">
+				<i class="ai1ec-fa ai1ec-fa-angle-double-left"></i> 2017
+			</a>
+								<a class="ai1ec-prev-month ai1ec-load-view ai1ec-btn ai1ec-btn-sm
+				ai1ec-btn-default "
+				data-type="json"
+				href="http&#x3A;&#x2F;&#x2F;www.acomee.org&#x2F;calendar&#x2F;action&#x7E;month&#x2F;exact_date&#x7E;1530421200&#x2F;request_format&#x7E;json&#x2F;">
+				<i class="ai1ec-fa ai1ec-fa-angle-left"></i> Jul
+			</a>
+								<a
+	class="ai1ec-minical-trigger ai1ec-btn ai1ec-btn-sm ai1ec-btn-default
+    ai1ec-tooltip-trigger"
+			data-date="1/8/2018"
+			data-date-format="d/m/yyyy"
+			data-date-weekstart="0"
+			href="#"
+			data-href="http://www.acomee.org/calendar/action~month/exact_date~__DATE__/"
+			data-lang="es-ES"
+		data-type="json"
+	title="Elegir una fecha usando el calendario"
+	>
+	<i class="ai1ec-fa ai1ec-fa-calendar-o ai1ec-fa-fw ai1ec-fa-lg"></i>
+  <span class="ai1ec-calendar-title">agosto 2018</span>
+  <span class="ai1ec-calendar-title-short"></span>
+</a>
+
+								<a class="ai1ec-next-month ai1ec-load-view ai1ec-btn ai1ec-btn-sm
+				ai1ec-btn-default "
+				data-type="json"
+				href="http&#x3A;&#x2F;&#x2F;www.acomee.org&#x2F;calendar&#x2F;action&#x7E;month&#x2F;exact_date&#x7E;1535778000&#x2F;request_format&#x7E;json&#x2F;">
+				Sep <i class="ai1ec-fa ai1ec-fa-angle-right"></i>
+			</a>
+								<a class="ai1ec-next-year ai1ec-load-view ai1ec-btn ai1ec-btn-sm
+				ai1ec-btn-default "
+				data-type="json"
+				href="http&#x3A;&#x2F;&#x2F;www.acomee.org&#x2F;calendar&#x2F;action&#x7E;month&#x2F;exact_date&#x7E;1564635600&#x2F;request_format&#x7E;json&#x2F;">
+				2019 <i class="ai1ec-fa ai1ec-fa-angle-double-right"></i>
+			</a>
+			</div>
+</div>
+
+			</div>
+		</div>
+		<div class="ai1ec-subscribe-container ai1ec-pull-right ai1ec-btn-group">
+			<div class="ai1ec-subscribe-dropdown ai1ec-dropdown ai1ec-dropup ai1ec-btn
+	ai1ec-btn-default ai1ec-btn-sm">
+	<span role="button" class="ai1ec-dropdown-toggle ai1ec-subscribe"
+			data-toggle="ai1ec-dropdown">
+		<i class="ai1ec-fa ai1ec-icon-rss ai1ec-fa-lg ai1ec-fa-fw"></i>
+		<span class="ai1ec-hidden-xs">
+												Suscribirse
+										<span class="ai1ec-caret"></span>
+		</span>
+	</span>
+			<ul class="ai1ec-dropdown-menu ai1ec-pull-right" role="menu">
+		<li>
+			<a class="ai1ec-tooltip-trigger ai1ec-tooltip-auto" target="_blank"
+				data-placement="left" title="Copia esta URL de tu propio calendario Timely o haz click para agregar a tu calendario de texto-enriquecido"
+				href="http&#x3A;&#x2F;&#x2F;www.acomee.org&#x2F;&#x3F;plugin&#x3D;all-in-one-event-calendar&amp;controller&#x3D;ai1ec_exporter_controller&amp;action&#x3D;export_events">
+				<i class="ai1ec-fa ai1ec-fa-lg ai1ec-fa-fw ai1ec-icon-timely"></i>
+				Añadir a Timely Calendar
+			</a>
+		</li>
+		<li>
+			<a class="ai1ec-tooltip-trigger ai1ec-tooltip-auto" target="_blank"
+			  data-placement="left" title="Suscribete a este calendario en tu Google Calendar"
+			  href="https://www.google.com/calendar/render?cid=http&#x25;3A&#x25;2F&#x25;2Fwww.acomee.org&#x25;2F&#x25;3Fplugin&#x25;3Dall-in-one-event-calendar&#x25;26controller&#x25;3Dai1ec_exporter_controller&#x25;26action&#x25;3Dexport_events&#x25;26no_html&#x25;3Dtrue&#x25;26&#x25;26">
+				<i class="ai1ec-fa ai1ec-icon-google ai1ec-fa-lg ai1ec-fa-fw"></i>
+				Añadir a Google
+			</a>
+		</li>
+		<li>
+			<a class="ai1ec-tooltip-trigger ai1ec-tooltip-auto" target="_blank"
+			  data-placement="left" title="Suscríbete a este calendario en tu MS Outlook"
+			  href="webcal&#x3A;&#x2F;&#x2F;www.acomee.org&#x2F;&#x3F;plugin&#x3D;all-in-one-event-calendar&amp;controller&#x3D;ai1ec_exporter_controller&amp;action&#x3D;export_events&amp;no_html&#x3D;true">
+				<i class="ai1ec-fa ai1ec-icon-windows ai1ec-fa-lg ai1ec-fa-fw"></i>
+				Agregar a Outlook
+			</a>
+		</li>
+		<li>
+			<a class="ai1ec-tooltip-trigger ai1ec-tooltip-auto" target="_blank"
+			  data-placement="left" title="Suscríbete a este calendario en Apple Calendar / iCal"
+			  href="webcal&#x3A;&#x2F;&#x2F;www.acomee.org&#x2F;&#x3F;plugin&#x3D;all-in-one-event-calendar&amp;controller&#x3D;ai1ec_exporter_controller&amp;action&#x3D;export_events&amp;no_html&#x3D;true">
+				<i class="ai1ec-fa ai1ec-icon-apple ai1ec-fa-lg ai1ec-fa-fw"></i>
+				Agregar a Apple Calendar
+			</a>
+		</li>
+		<li>
+						<a class="ai1ec-tooltip-trigger ai1ec-tooltip-auto"
+			  data-placement="left" title="Suscribirse a este calendario en la agenda de otro de texto plano"
+			  href="http&#x3A;&#x2F;&#x2F;www.acomee.org&#x2F;&#x3F;plugin&#x3D;all-in-one-event-calendar&amp;controller&#x3D;ai1ec_exporter_controller&amp;action&#x3D;export_events&amp;no_html&#x3D;true">
+				<i class="ai1ec-fa ai1ec-icon-calendar ai1ec-fa-fw"></i>
+				Agregar a otro calendario
+			</a>
+		</li>
+		<li>
+			<a class="ai1ec-tooltip-trigger ai1ec-tooltip-auto"
+			  data-placement="left" title=""
+			  href="http&#x3A;&#x2F;&#x2F;www.acomee.org&#x2F;&#x3F;plugin&#x3D;all-in-one-event-calendar&amp;controller&#x3D;ai1ec_exporter_controller&amp;action&#x3D;export_events&xml=true">
+				<i class="ai1ec-fa ai1ec-fa-file-text ai1ec-fa-lg ai1ec-fa-fw"></i>
+				Export to XML
+			</a>
+		</li>
+	</ul>
+</div>
+
+
+		</div>
+		
+	</div><!-- /.timely -->
+</div>
+<!-- END All-in-One Event Calendar Plugin -->
+
+
+	</div><!-- end blog-desc -->
+</div><!-- end blog-carousel -->
+					</div><!-- end col-lg-4 -->
+				</div><!-- end blog-masonry -->
+				<div class="clearfix"></div>
+				<div id="comments" class="padding-top">	<div class="clearfix"></div>
+		
+</div><!-- end comments -->				<hr>
+			</div><!-- end row --> 
+		</div><!-- end content -->
+		<div id="sidebar" class="col-lg-3 col-md-3 col-sm-12 col-xs-12">
+		    
+		  
+		    
+	<div id="custom_html-5" class="widget_text widget widget_custom_html"><div class="title"><h2>Haga una reservaci&oacuten para este laboratorio</h2></div><div class="textwidget custom-html-widget">
+	    
+	    <form action="" method="POST">
+	    
+	    <select id="selectDia"  name="selectDia" onchange="comprobarHorario()">
+				    <option value="ninguno">----</option>
+				    <?PHP
+			
+			$nombre=$_SESSION['nombre'];
+            $apellido=$_SESSION['apellido'];	    
+            $year =  date("Y",time());  
+        
+         if(null==$month&&isset($_GET['month'])){
+            if($_GET['month']!=date("m")){
+            $diaActual=1;
+            }
+            else{
+              $diaActual =intval(date('d'));
+            }
+            $month = $_GET['month'];
+         
+        }else if(null==$month){
+ 
+            $month = date("m",time());
+            $diaActual=intval(date('d'));
+         
+        }
+        
+        
+				    $daysInMonths = date('t',strtotime($year.'-'.$month.'-01'));
+				    
+				    if($month>=date('m')){
+				    for($j=$diaActual;$j<=$daysInMonths;$j++){ ?>
+                                        <option value="<?PHP echo($j);?>"><?PHP echo($j);?></option>
+                                  <?      
+                                    }
+				        
+				    }
+				    	?>
+                
+
+            		<?PHP /*} */?>
+				  <!--  <option value="nuevo"><?//=$daysInMonths?></option>-->
+				</select>
+	    <input type="hidden" name="mesCal" id="mesCal" value="<?=$month?>"/>
+	    <input type="hidden" name="yearCal" id="yearCal" value="<?=$year?>"/>
+	    
+	    <input type="hidden" name="nombre" id="nombre" value="<?=$nombre?>"/>
+	    <input type="hidden" name="apelldio" id="apellido" value="<?=$apellido?>"/>
+	    
+	    <div id="campoHorario">
+	        
+	    </div>
+	    <div id="campoHorarioFin">
+	        
+	    </div>
+	  </form>  
+	    
+	</div></div>
+	<div id="media_image-5" class="widget widget_media_image"><div class="title"><h2>Datos del laboratorio</h2></div><?php
+ require_once 'php/conexion.php';
+ //$var=$_GET["identificador"];
+//echo $var;
+//$mysqli = getConnexion();
+
+		 ?>
+         <b>Nombre Laboratorio:</b>
+        <h4><?php echo $laboratorio;?>  </h4>
+<b>Foto:</b><br>
+<img src="pictures/<?php echo $foto; ?>" width="150" />
+<br>
+<br>
+<b>Ubicaci&oacute;n:</b> <p><?php echo $piso; ?></p>
+<b>Capacidad:</b><p>
+    <?php echo $cap; ?> alumnos</p> 
+<b>Descripccion:</b><p>
+    <?php echo $des; ?></p>
+<b>Acceso para discapacidad:</b>
+<p>Si</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<?php 
+		
+		
+
+		
+
+?></div>
+<div id="media_image-3" class="widget widget_media_image"><div class="title"><h2>El Lic. Gabriel Garcia Corona PRESIDENTE de ACOMEE México, en Reunión de Trabajo con la Cámara de Comercio.</h2></div><img width="1024" height="459" src="http://www.acomee.org/wp-content/uploads/2018/02/reunion_CANACO_feb2018-1024x459.jpg" class="image wp-image-271  attachment-large size-large" alt="" style="max-width: 100%; height: auto;" srcset="http://www.acomee.org/wp-content/uploads/2018/02/reunion_CANACO_feb2018-1024x459.jpg 1024w, http://www.acomee.org/wp-content/uploads/2018/02/reunion_CANACO_feb2018-300x135.jpg 300w, http://www.acomee.org/wp-content/uploads/2018/02/reunion_CANACO_feb2018-768x344.jpg 768w, http://www.acomee.org/wp-content/uploads/2018/02/reunion_CANACO_feb2018.jpg 1280w" sizes="(max-width: 1024px) 100vw, 1024px" /></div>
+<div id="media_video-3" class="widget widget_media_video"><div class="title"><h2>Discurso Lic. Gabriel García Corona &#8220;Cena de Aniversario 2017&#8221;</h2></div><div id="fb-root"></div><script>(function(d, s, id) {  var js, fjs = d.getElementsByTagName(s)[0];  if (d.getElementById(id)) return;  js = d.createElement(s); js.id = id;  js.src = 'https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v3.0';  fjs.parentNode.insertBefore(js, fjs);}(document, 'script', 'facebook-jssdk'));</script><div class="fb-video" data-href="https://www.facebook.com/138336503332720/videos/300951037071265/" data-width="1068"><blockquote cite="https://www.facebook.com/138336503332720/videos/300951037071265/" class="fb-xfbml-parse-ignore"><a href="https://www.facebook.com/138336503332720/videos/300951037071265/">Cena  Baile de Gala Acomee México 2017</a><p>Discurso del licenciado Gabriel García Corona, presidente de Acomee México, en el marco del 54 aniversario de Acomee México</p>Posted by <a href="https://www.facebook.com/Nueva-Era-Editores-e-Impresores-138336503332720/">Nueva Era Editores e Impresores</a> on Tuesday, November 14, 2017</blockquote></div></div>
+<div id="media_video-5" class="widget widget_media_video"><div class="title"><h2>Mundo Sustentable: Elías nos concientiza sobre la piratería en los productos eléctricos. Para que no sufras ningún daño en el futuro, compra material 100 % original.</h2></div><div id="fb-root"></div><script>(function(d, s, id) {  var js, fjs = d.getElementsByTagName(s)[0];  if (d.getElementById(id)) return;  js = d.createElement(s); js.id = id;  js.src = 'https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v3.0';  fjs.parentNode.insertBefore(js, fjs);}(document, 'script', 'facebook-jssdk'));</script><div class="fb-video" data-href="https://www.facebook.com/mundosustentableoficial/videos/865272720296738/" data-width="1068"><blockquote cite="https://www.facebook.com/mundosustentableoficial/videos/865272720296738/" class="fb-xfbml-parse-ignore"><a href="https://www.facebook.com/mundosustentableoficial/videos/865272720296738/"></a><p>Elías nos concientiza sobre la piratería en los productos eléctricos. Para que no sufras ningún daño en el futuro, compra material 100 % original #Pontugranitodearena #Salvandoalplaneta Patrocinado por: Finder Mexico</p>Posted by <a href="https://www.facebook.com/mundosustentableoficial/">Mundo Sustentable</a> on Monday, October 23, 2017</blockquote></div></div>
+</div><!-- end content -->
+</div><!-- end container -->
+</section><!--end white-wrapper -->
+<?PHP ?><!-- end copyrights -->
+<div class="awadatop">Scroll to Top</div>
+<link rel='stylesheet' id='mediaelement-css'  href='http://www.acomee.org/wp-includes/js/mediaelement/mediaelementplayer-legacy.min.css?ver=4.2.6-78496d1' type='text/css' media='all' />
+<link rel='stylesheet' id='wp-mediaelement-css'  href='http://www.acomee.org/wp-includes/js/mediaelement/wp-mediaelement.min.css?ver=4.9.5' type='text/css' media='all' />
+<script type='text/javascript' src='http://www.acomee.org/wp-includes/js/comment-reply.min.js?ver=4.9.5'></script>
+<script type='text/javascript' src='http://www.acomee.org/wp-includes/js/wp-embed.min.js?ver=4.9.5'></script>
+<script type='text/javascript' src='https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js?ver=3.0.17-dev'></script>
+<script type='text/javascript'>
+WebFont.load({google:{families:['Eagle Lake:400', 'EB Garamond:700', 'Merriweather:400']}});
+</script>
+<script type='text/javascript'>
+var mejsL10n = {"language":"es","strings":{"mejs.install-flash":"Est\u00e1s usando un navegador que no tiene Flash activo o instalado. Por favor, activa el componente del reproductor Flash o descarga la \u00faltima versi\u00f3n desde https:\/\/get.adobe.com\/flashplayer\/","mejs.fullscreen-off":"Salir de pantalla completa","mejs.fullscreen-on":"Ver en pantalla completa","mejs.download-video":"Descargar v\u00eddeo","mejs.fullscreen":"Pantalla completa","mejs.time-jump-forward":["Saltar %1 segundo hacia adelante","Salta hacia adelante %1 segundos"],"mejs.loop":"Alternar bucle","mejs.play":"Reproducir","mejs.pause":"Pausa","mejs.close":"Cerrar","mejs.time-slider":"Control de tiempo","mejs.time-help-text":"Usa las teclas de direcci\u00f3n izquierda\/derecha para avanzar un segundo, y las flechas arriba\/abajo para avanzar diez segundos.","mejs.time-skip-back":["Saltar atr\u00e1s 1 segundo","Retroceder %1 segundos"],"mejs.captions-subtitles":"Pies de foto \/ Subt\u00edtulos","mejs.captions-chapters":"Cap\u00edtulos","mejs.none":"Ninguna","mejs.mute-toggle":"Desactivar sonido","mejs.volume-help-text":"Utiliza las teclas de flecha arriba\/abajo para aumentar o disminuir el volumen.","mejs.unmute":"Activar sonido","mejs.mute":"Silenciar","mejs.volume-slider":"Control de volumen","mejs.video-player":"Reproductor de v\u00eddeo","mejs.audio-player":"Reproductor de audio","mejs.ad-skip":"Saltar anuncio","mejs.ad-skip-info":["Saltar en 1 segundo","Saltar en %1 segundos"],"mejs.source-chooser":"Selector de origen","mejs.stop":"Parar","mejs.speed-rate":"Tasa de velocidad","mejs.live-broadcast":"Transmisi\u00f3n en vivo","mejs.afrikaans":"Africano","mejs.albanian":"Albano","mejs.arabic":"\u00c1rabe","mejs.belarusian":"Bielorruso","mejs.bulgarian":"B\u00falgaro","mejs.catalan":"Catal\u00e1n","mejs.chinese":"Chino","mejs.chinese-simplified":"Chino (Simplificado)","mejs.chinese-traditional":"Chino (Tradicional)","mejs.croatian":"Croata","mejs.czech":"Checo","mejs.danish":"Dan\u00e9s","mejs.dutch":"Holand\u00e9s","mejs.english":"Ingl\u00e9s","mejs.estonian":"Estonio","mejs.filipino":"Filipino","mejs.finnish":"Fin\u00e9s","mejs.french":"Franc\u00e9s","mejs.galician":"Gallego","mejs.german":"Alem\u00e1n","mejs.greek":"Griego","mejs.haitian-creole":"Creole haitiano","mejs.hebrew":"Hebreo","mejs.hindi":"Indio","mejs.hungarian":"H\u00fangaro","mejs.icelandic":"Island\u00e9s","mejs.indonesian":"Indonesio","mejs.irish":"Irland\u00e9s","mejs.italian":"Italiano","mejs.japanese":"Japon\u00e9s","mejs.korean":"Coreano","mejs.latvian":"Let\u00f3n","mejs.lithuanian":"Lituano","mejs.macedonian":"Macedonio","mejs.malay":"Malayo","mejs.maltese":"Malt\u00e9s","mejs.norwegian":"Noruego","mejs.persian":"Persa","mejs.polish":"Polaco","mejs.portuguese":"Portugu\u00e9s","mejs.romanian":"Rumano","mejs.russian":"Ruso","mejs.serbian":"Serbio","mejs.slovak":"Eslovaco","mejs.slovenian":"Esloveno","mejs.spanish":"Espa\u00f1ol","mejs.swahili":"Swahili","mejs.swedish":"Sueco","mejs.tagalog":"Tagalo","mejs.thai":"Thai","mejs.turkish":"Turco","mejs.ukrainian":"Ukraniano","mejs.vietnamese":"Vietnamita","mejs.welsh":"Gal\u00e9s","mejs.yiddish":"Yiddish"}};
+</script>
+<script type='text/javascript' src='http://www.acomee.org/wp-includes/js/mediaelement/mediaelement-and-player.min.js?ver=4.2.6-78496d1'></script>
+<script type='text/javascript' src='http://www.acomee.org/wp-includes/js/mediaelement/mediaelement-migrate.min.js?ver=4.9.5'></script>
+<script type='text/javascript'>
+/* <![CDATA[ */
+var _wpmejsSettings = {"pluginPath":"\/wp-includes\/js\/mediaelement\/","classPrefix":"mejs-","stretching":"responsive"};
+/* ]]> */
+</script>
+<script type='text/javascript' src='http://www.acomee.org/wp-includes/js/mediaelement/wp-mediaelement.min.js?ver=4.9.5'></script>
+<script type='text/javascript' src='http://www.acomee.org/wp-includes/js/mediaelement/renderers/vimeo.min.js?ver=4.2.6-78496d1'></script>
+<script type='text/javascript' src='http://www.acomee.org/wp-content/themes/awada/js/bootstrap.js?ver=4.9.5'></script>
+<script type='text/javascript' src='http://www.acomee.org/wp-content/themes/awada/js/menu.js?ver=4.9.5'></script>
+<script type='text/javascript' src='http://www.acomee.org/wp-content/themes/awada/js/owl.carousel.js?ver=4.9.5'></script>
+<script type='text/javascript' src='http://www.acomee.org/wp-content/themes/awada/js/wow.js?ver=4.9.5'></script>
+<script type='text/javascript' src='http://www.acomee.org/wp-content/themes/awada/js/slider/modernizr.custom.79639.js?ver=4.9.5'></script>
+<script type='text/javascript' src='http://www.acomee.org/wp-content/themes/awada/js/slider/jquery.ba-cond.js?ver=4.9.5'></script>
+<script type='text/javascript' src='http://www.acomee.org/wp-content/themes/awada/js/slider/jquery.slitslider.js?ver=4.9.5'></script>
+<script type='text/javascript' src='http://www.acomee.org/wp-content/themes/awada/js/jquery.prettyPhoto.js?ver=4.9.5'></script>
+<script type='text/javascript' src='http://www.acomee.org/wp-content/themes/awada/js/jquery.fitvids.js?ver=4.9.5'></script>
+<script type='text/javascript' src='http://www.acomee.org/wp-content/themes/awada/js/jquery.mb.YTPlayer.js?ver=4.9.5'></script>
+<script type='text/javascript'>
+/* <![CDATA[ */
+var screenReaderText = {"ajaxurl":"http:\/\/www.acomee.org\/wp-admin\/admin-ajax.php","ppp":"3","noposts":"No older posts found"};
+/* ]]> */
+</script>
+<script type='text/javascript' src='http://www.acomee.org/wp-content/themes/awada/js/custom.js?ver=4.9.5'></script>
+<script type='text/javascript' src='http://www.acomee.org/wp-includes/js/imagesloaded.min.js?ver=3.2.0'></script>
+<script type='text/javascript' src='http://www.acomee.org/wp-includes/js/masonry.min.js?ver=3.3.2'></script>
+<script type='text/javascript' src='http://www.acomee.org/wp-content/themes/awada/js/load-more.js?ver=4.9.5'></script>
+<!--[if lt IE 9]>
+<script type='text/javascript' src='http://www.acomee.org/wp-content/themes/awada/js/html5_shiv.js?ver=4.9.5'></script>
+<![endif]-->
+
+
+</body>
+</html>
